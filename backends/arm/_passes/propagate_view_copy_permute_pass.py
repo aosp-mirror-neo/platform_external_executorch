@@ -108,16 +108,18 @@ class PropagateViewCopyPermutePass(ArmPass, ABC):
                         continue
                     if self._propagate(node):
                         iteration_modified = True
-                        break
 
             if iteration_modified:
+                modified = True
                 graph_module = self._retrace(graph_module)
-                result = self.fuse_horizontal(graph_module)
-                graph_module = result.graph_module
-                iteration_modified |= result.modified
-                result = self.fuse_vertical(graph_module)
-                graph_module = result.graph_module
-                iteration_modified |= result.modified
+                continue
+
+            result = self.fuse_horizontal(graph_module)
+            graph_module = result.graph_module
+            iteration_modified |= result.modified
+            result = self.fuse_vertical(graph_module)
+            graph_module = result.graph_module
+            iteration_modified |= result.modified
 
             modified |= iteration_modified
             if not iteration_modified:
