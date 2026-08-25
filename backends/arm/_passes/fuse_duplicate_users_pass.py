@@ -88,7 +88,6 @@ class FuseDuplicateUsersPass(ArmPass):
                     producers.append(representative)
 
         if modified:
-            graph_module.recompile()
             graph_module.graph.lint()
             graph_module = super().call(graph_module).graph_module
 
