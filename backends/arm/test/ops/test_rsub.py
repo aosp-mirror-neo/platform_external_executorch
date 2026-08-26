@@ -37,6 +37,29 @@ class Rsub(torch.nn.Module):
         return torch.rsub(x, y)
 
 
+class RsubAlpha(torch.nn.Module):
+    """Driven through the pipeline rather than the rewrite alone: the alpha the
+    rewrite produces only disappears once the decomposition after it runs.
+    """
+
+    aten_op = "torch.ops.aten.rsub.Scalar"
+    exir_op = "executorch_exir_dialects_edge__ops_aten_sub_Tensor"
+
+    def __init__(self, alpha):
+        super().__init__()
+        self.alpha = alpha
+
+    def forward(self, x: torch.Tensor, y: int):
+        return torch.rsub(x, y, alpha=self.alpha)
+
+
+rsub_alpha_test_data = {
+    "alpha_int": (lambda: (torch.rand(4, 4), 2), 2),
+    "alpha_negative": (lambda: (torch.rand(4, 4), 1.5), -2),
+    "alpha_fractional": (lambda: (torch.rand(2, 2, 4, 4), -1.1), 0.5),
+}
+
+
 input_t1 = Tuple[torch.Tensor, torch.Tensor]
 
 
@@ -61,6 +84,31 @@ def test_rsub_scalar_tosa_INT(test_data):
         exir_op=Rsub.exir_op,
         qtol=0,
         cosine_threshold=None,  # For rand_4D_big_small, the output diff is large which throws off the cosine similarity even if it is relatively small.
+    )
+    pipeline.run()
+
+
+@common.parametrize("test_data", rsub_alpha_test_data)
+def test_rsub_scalar_alpha_tosa_FP(test_data):
+    data, alpha = test_data
+    pipeline = TosaPipelineFP[input_t1](
+        RsubAlpha(alpha),
+        data(),
+        aten_op=RsubAlpha.aten_op,
+        exir_op=RsubAlpha.exir_op,
+    )
+    pipeline.run()
+
+
+@common.parametrize("test_data", rsub_alpha_test_data)
+def test_rsub_scalar_alpha_tosa_INT(test_data):
+    data, alpha = test_data
+    pipeline = TosaPipelineINT[input_t1](
+        RsubAlpha(alpha),
+        data(),
+        aten_op="torch.ops.aten.sub.Tensor",
+        exir_op=RsubAlpha.exir_op,
+        qtol=0,
     )
     pipeline.run()
 

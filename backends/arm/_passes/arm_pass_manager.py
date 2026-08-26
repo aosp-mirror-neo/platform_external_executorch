@@ -767,6 +767,9 @@ class ArmPassManager(ExportedProgramPassManager):
                 [
                     ReplaceScalarWithTensorByProfilePass(tfa_pass=True),
                     ScalarsToAttributePass(tfa_pass=True),
+                    # ScalarsToAttributePass turns rsub into a sub carrying
+                    # alpha, which the decomposition above has already passed.
+                    DecomposeAddSubAlphaPass(tfa_pass=True),
                     ControlFlowConstInlinePass(tfa_pass=True),
                 ]
             )
